@@ -8,10 +8,16 @@ from typing import Any, Optional
 
 
 class Type(Enum):
+    """Represents the different availables types of the database"""
+
     INT32 = 1
+    """Signed 4-byte integer"""
     FLOAT64 = 2
+    """ Double-precision 8-byte floating point number"""
     STRING = 3
+    """Variable-length utf-8 character sequence"""
     BOOL = 4
+    """Classic Boolean type"""
 
     @staticmethod
     def from_code(code: int) -> "Type":
