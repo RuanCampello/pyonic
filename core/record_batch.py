@@ -4,8 +4,8 @@ data across the columnar storage.
 """
 
 from typing import List, Tuple
-from .column import Column
-from .types import Type
+from core.column import Column
+from core.types import Type
 
 
 class RecordBatch:
@@ -89,3 +89,4 @@ class RecordBatch:
                 encoded.extend(struct.pack("<I", 0))
 
         return bytes(encoded)
+
