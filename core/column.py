@@ -3,8 +3,22 @@ Columns representation. Responsable of encoding data buffers,
 null bitmap and string offsets.
 """
 
+import struct
+
+from dataclasses import dataclass
 from typing import List, Optional, Union
 from core.types import Type
+
+
+@dataclass
+class ColumnBuffers:
+    """
+    Encapsulates the encoded binary buffers for a column.
+    """
+
+    values: bytes
+    nulls: Optional[bytes] = None
+    offsets: Optional[bytes] = None
 
 
 class Column:
@@ -25,7 +39,26 @@ class Column:
         self.nullable = nullable
 
         self.null_bitmap = self.__build_null_bitmap() if nullable else None
-        self.offsets = self.__build_null_bitmap() if dtype == Type.STRING else None
+        self.offsets = self.__build_offsets() if dtype == Type.STRING else None
+
+    def encode_buffers(self) -> ColumnBuffers:
+        """
+        Encodes this column into raw bytes buffers, ready for serialisation.
+        """
+        buff = bytearray()
+
+        for value in self.values:
+            buff.extend(self.dtype.encode(value))
+
+        offsets = (
+            b"".join(struct.pack("<I", off) for off in self.offsets)
+            if self.offsets
+            else None
+        )
+
+        return ColumnBuffers(
+            values=bytes(buff), nulls=self.null_bitmap, offsets=offsets
+        )
 
     def __build_null_bitmap(self) -> bytes:
         """

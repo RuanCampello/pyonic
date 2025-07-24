@@ -2,8 +2,9 @@
 Database's type system representation.
 """
 
+import struct
 from enum import Enum
-from typing import Optional
+from typing import Any, Optional
 
 
 class Type(Enum):
@@ -27,3 +28,38 @@ class Type(Enum):
                 return 1
             case _:
                 return None
+
+    def encode(self, value: Any) -> bytes:
+        """
+        Encodes a single value into a respective type format.
+        """
+
+        if value is None:
+            value = self.null()
+
+        match self:
+            case Type.INT32:
+                return struct.pack("<i", value)
+            case Type.FLOAT64:
+                return struct.pack("<d", value)
+            case Type.STRING:
+                if isinstance(value, str):
+                    return value.encode("utf-8")
+                return b""
+            case Type.BOOL:
+                return bytes([1 if value else 0])
+
+    def null(self) -> Any:
+        """
+        Returns the default null representation of this given type.
+        """
+
+        match self:
+            case Type.INT32:
+                return 0
+            case Type.FLOAT64:
+                return 0.0
+            case Type.STRING:
+                return ""
+            case Type.BOOL:
+                return False
