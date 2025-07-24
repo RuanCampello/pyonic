@@ -3,7 +3,7 @@ Record Batch groups multiple columns into a single batch of row-aligned
 data across the columnar storage.
 """
 
-from typing import List, Tuple
+from typing import List, Self, Tuple
 from core.column import Column
 from core.types import Type
 
@@ -90,3 +90,42 @@ class RecordBatch:
 
         return bytes(encoded)
 
+    @staticmethod
+    def decode(buffer: bytes) -> "RecordBatch":
+        """
+        Decodes a RecordBatch from a binary buffer.
+        """
+
+        from io import BytesIO
+
+        stream = BytesIO(buffer)
+        columns = []
+
+        while stream.tell() < len(buffer):
+            name_len = int.from_bytes(stream.read(2), "little")
+            name = stream.read(name_len).decode("utf-8")
+
+            type_b = stream.read(1)[0]
+            nullable = bool(stream.read(1)[0])
+            dtype = Type.from_code(type_b)
+
+            n_values = int.from_bytes(stream.read(4), "little")
+
+            bitmap_size = (n_values + 7) // 8
+            bitmap = stream.read(bitmap_size)
+            nulls = RecordBatch.__unpack_bitmap(bitmap, n_values)
+
+            # calcule offsets
+            if dtype == Type.STRING:
+                offsets = [
+                    int.from_bytes(stream.read(4), "little")
+                    for _ in range(n_values + 1)
+                ]
+            else:
+                offsets = None
+
+        return RecordBatch(columns)
+
+    @staticmethod
+    def __unpack_bitmap(bitmap: bytes, size: int) -> list[bool]:
+        return [bool((byte >> idx) & 1) for byte in bitmap for idx in range(8)][:size]
